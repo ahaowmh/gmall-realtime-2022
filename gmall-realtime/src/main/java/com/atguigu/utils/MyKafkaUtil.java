@@ -84,4 +84,14 @@ public class MyKafkaUtil {
                 "  'format' = 'json' " +
                 ")";
     }
+
+    public static String getUpsertKafkaDDL(String topic) {
+        return " WITH ( " +
+                "'connector' = 'upsert-kafka', " +
+                "'topic' = '" + topic + "', " +
+                "'properties.bootstrap.servers' = 'hadoop102:9092', " +
+                "'key.format' = 'json', " +
+                "'value.format' = 'json' " +
+                ")";
+    }
 }
