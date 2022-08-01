@@ -43,7 +43,7 @@ public class BaseLogApp {
         env.getCheckpointConfig().setCheckpointStorage("hdfs://hadoop102:8020/gmall/ck");
         System.setProperty("HADOOP_USER_NAME", "ahao");*/
 
-        //TODO 2.从kafka读数据创建流(topic_db)
+        //TODO 2.从kafka读数据创建流(topic_log)
         DataStreamSource<String> kafkaDS = env.addSource(MyKafkaUtil.getFlinkKafkaConsumer(
                 "topic_log", "base_log_app", "hadoop102:9092"));
 

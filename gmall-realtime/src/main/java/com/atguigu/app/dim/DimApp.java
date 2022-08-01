@@ -50,7 +50,7 @@ public class DimApp {
 
         //TODO 2.从kafka读取数据创建流（topic_db)
         DataStreamSource<String> kafkaDS = env.addSource(MyKafkaUtil.getFlinkKafkaConsumer(
-                "topic_db", "flink_realtime_dim","hadoop102:9092"));
+                    "topic_db", "flink_realtime_dim","hadoop102:9092"));
 
         //TODO 3.将数据转换为josn并过滤掉脏数据   主流
         //用flatmap也可以实现转换数据格式并过滤数据，但是无法将脏数据保存到侧输出流

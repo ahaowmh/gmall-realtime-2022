@@ -6,6 +6,8 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 
+import java.time.Duration;
+
 /**
  * @author ahao
  * @date 2022/7/23 09:54
@@ -16,6 +18,9 @@ public class DwdTradeOrderPreProcessDemo {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
         StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
+
+        // 为表关联时状态中存储的数据设置过期时间
+        tableEnv.getConfig().setIdleStateRetention(Duration.ofSeconds(905));
 
         /*// 状态后端设置 (生产环境要写）
         env.enableCheckpointing(3000L, CheckpointingMode.EXACTLY_ONCE);
