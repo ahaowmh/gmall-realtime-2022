@@ -8,6 +8,7 @@ public class JedisPoolUtil {
 
     private static JedisPool jedisPool;
 
+
     private static void initJedisPool() {
         JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(100);

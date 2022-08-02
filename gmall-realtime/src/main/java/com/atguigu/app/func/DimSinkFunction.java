@@ -4,14 +4,20 @@ import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.druid.pool.DruidPooledConnection;
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.common.GmallConfig;
+import com.atguigu.utils.DimUtil;
 import com.atguigu.utils.DruidDSUtil;
+import com.atguigu.utils.JedisPoolUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
 import java.sql.PreparedStatement;
 import java.util.Collection;
 import java.util.Set;
+
+
 
 /**
  * @author ahao
@@ -20,10 +26,13 @@ import java.util.Set;
 public class DimSinkFunction extends RichSinkFunction<JSONObject> {
 
     private DruidDataSource druidDataSource;
+    private JedisPool jedisPool;
+
     //初始化连接池，创建Phoenix连接
     @Override
     public void open(Configuration parameters) throws Exception {
         druidDataSource = DruidDSUtil.createDataSource();
+        jedisPool = JedisPoolUtil.getJedisPool();
     }
 
     @Override
@@ -33,12 +42,25 @@ public class DimSinkFunction extends RichSinkFunction<JSONObject> {
 
         //拼接SQL 格式：upsert into db.tn(id,name,sex) values('1001','zs','male')
         //SQL中只有tn \ '1001','zs','male'获取不到，要传参
+        String sinkTable = value.getString("sinkTable");
+        JSONObject data = value.getJSONObject("data");
         String sql = genUpsertSql(
-                value.getString("sinkTable"),
-                value.getJSONObject("data"));
+                sinkTable,
+                data);
+
 
         //将拼接的SQL打印查看
         System.out.println(sql);
+
+
+        //如果为更新操作,则先删除Redis中的数据
+        if ("update".equals(value.getString("type"))) {
+            Jedis jedis = jedisPool.getResource();
+            DimUtil.delDimInfo(jedis,
+                    sinkTable.toUpperCase(),
+                    data.getString("id"));
+            jedis.close();
+        }
 
         //执行
         PreparedStatement preparedStatement = connection.prepareStatement(sql);

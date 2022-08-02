@@ -12,6 +12,9 @@ import redis.clients.jedis.JedisPool;
 import java.sql.Connection;
 import java.util.List;
 
+/**
+ * 在jdbcUtil工具类的基础上再封装，只传入四个参数即获取查询结果
+ */
 public class DimUtil {
 
     public static JSONObject getDimInfo(Jedis jedis, Connection connection, String tableName, String key) throws Exception {
@@ -55,10 +58,10 @@ public class DimUtil {
         Jedis jedis = jedisPool.getResource();
 
         long start = System.currentTimeMillis();
-        System.out.println(getDimInfo(jedis, connection, "DIM_BASE_TRADEMARK", "13")); //148 148 143 148 140
+        System.out.println(getDimInfo(jedis, connection, "DIM_BASE_TRADEMARK", "16")); //148 148 143 148 140
         long end = System.currentTimeMillis();
 
-        System.out.println(getDimInfo(jedis, connection, "DIM_BASE_TRADEMARK", "13")); //10 8 8 9   0 1 1 1 1
+        System.out.println(getDimInfo(jedis, connection, "DIM_BASE_TRADEMARK", "16")); //10 8 8 9   0 1 1 1 1
         long end2 = System.currentTimeMillis();
 
         System.out.println(end - start);

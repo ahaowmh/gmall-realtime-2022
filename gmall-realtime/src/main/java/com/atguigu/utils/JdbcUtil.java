@@ -74,9 +74,9 @@ public class JdbcUtil {
         DruidPooledConnection connection = dataSource.getConnection();
 
         List<JSONObject> queryList = queryList(connection,
-                "select * from GMALL220212_REALTIME.DIM_BASE_TRADEMARK where id='13'",
+                "select * from GMALL2022_REALTIME.DIM_BASE_TRADEMARK where id='16'",
                 JSONObject.class,
-                true);
+                false);
         for (JSONObject jsonObject : queryList) {
             System.out.println(jsonObject);
         }

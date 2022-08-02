@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.atguigu.app.func.DimAsyncFunction;
 import com.atguigu.bean.TradeSkuOrderBean;
 import com.atguigu.utils.DateFormatUtil;
+import com.atguigu.utils.MyClickHouseUtil;
 import com.atguigu.utils.MyKafkaUtil;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
@@ -208,7 +209,7 @@ public class DwsTradeSkuOrderWindow {
                 100, TimeUnit.SECONDS);
 
         //8.2 关联spu_info
-        AsyncDataStream.unorderedWait(
+        SingleOutputStreamOperator<TradeSkuOrderBean> tradeSkuOrderWithSpuDS = AsyncDataStream.unorderedWait(
                 tradeSkuOrderWithSkuDS,
                 new DimAsyncFunction<TradeSkuOrderBean>("DIM_SPU_INFO") {
                     @Override
@@ -223,15 +224,79 @@ public class DwsTradeSkuOrderWindow {
                 },
                 100, TimeUnit.SECONDS);
 
+        //中途测试
+        //tradeSkuOrderWithSpuDS.print("SpuDS>>>>>>>>>>>");
+
         //8.3 关联base_trademark
+        SingleOutputStreamOperator<TradeSkuOrderBean> tradeSkuOrderWithTmDS = AsyncDataStream.unorderedWait(
+                tradeSkuOrderWithSpuDS,
+                new DimAsyncFunction<TradeSkuOrderBean>("DIM_BASE_TRADEMARK") {
+                    @Override
+                    public String getKey(TradeSkuOrderBean input) {
+                        return input.getTrademarkId();
+                    }
+
+                    @Override
+                    public void join(TradeSkuOrderBean input, JSONObject dimInfo) {
+                        input.setTrademarkName(dimInfo.getString("TM_NAME"));
+                    }
+                }, 100, TimeUnit.SECONDS);
+
 
         //8.4 关联category3
+        SingleOutputStreamOperator<TradeSkuOrderBean> tradeSkuOrderWithCategory3DS = AsyncDataStream.unorderedWait(
+                tradeSkuOrderWithTmDS,
+                new DimAsyncFunction<TradeSkuOrderBean>("DIM_BASE_CATEGORY3") {
+                    @Override
+                    public String getKey(TradeSkuOrderBean input) {
+                        return input.getCategory3Id();
+                    }
+
+                    @Override
+                    public void join(TradeSkuOrderBean input, JSONObject dimInfo) {
+                        input.setCategory3Name(dimInfo.getString("NAME"));
+                        input.setCategory2Id(dimInfo.getString("CATEGORY2_ID"));
+                    }
+                },
+                100, TimeUnit.SECONDS);
 
         //8.5 关联category2
+        SingleOutputStreamOperator<TradeSkuOrderBean> tradeSkuOrderWithCategory2DS = AsyncDataStream.unorderedWait(
+                tradeSkuOrderWithCategory3DS,
+                new DimAsyncFunction<TradeSkuOrderBean>("DIM_BASE_CATEGORY2") {
+                    @Override
+                    public String getKey(TradeSkuOrderBean input) {
+                        return input.getCategory2Id();
+                    }
+
+                    @Override
+                    public void join(TradeSkuOrderBean input, JSONObject dimInfo) {
+                        input.setCategory2Name(dimInfo.getString("NAME"));
+                        input.setCategory1Id(dimInfo.getString("CATEGORY1_ID"));
+                    }
+                },
+                100, TimeUnit.SECONDS);
 
         //8.6 关联category1
+        SingleOutputStreamOperator<TradeSkuOrderBean> tradeSkuOrderWithCategory1DS = AsyncDataStream.unorderedWait(
+                tradeSkuOrderWithCategory2DS,
+                new DimAsyncFunction<TradeSkuOrderBean>("DIM_BASE_CATEGORY1") {
+                    @Override
+                    public String getKey(TradeSkuOrderBean input) {
+                        return input.getCategory1Id();
+                    }
+
+                    @Override
+                    public void join(TradeSkuOrderBean input, JSONObject dimInfo) {
+                        input.setCategory1Name(dimInfo.getString("NAME"));
+                    }
+                },
+                100, TimeUnit.SECONDS);
 
         //TODO 9.将数据写出到ClickHouse
+        tradeSkuOrderWithCategory1DS.print(">>>>>>>>>>>>>");
+        tradeSkuOrderWithCategory1DS.addSink(MyClickHouseUtil.getSinkFunction("insert into dws_trade_sku_order_window values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"));
+
 
         //TODO 10.启动任务
         env.execute("DwsTradeSkuOrderWindow");
